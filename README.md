@@ -1,14 +1,8 @@
-> [!CAUTION]
-> This plugin currently does not work. Tesla has removed the REST API that this plugin, and nearly every 3rd-party Tesla app, uses. Many popular apps are broken right now. Tesla has introduced a new official API but it's currently unworkable. More information [on this thread](https://github.com/nfarina/homebridge-tesla/issues/116).
-
-
-# Tesla Accessory
-
-<p align="center"><img src="https://user-images.githubusercontent.com/117280/199400037-f17f6e02-5865-433c-80b2-6b09d70018a1.PNG" width="200px"/></p>
+# Tessie and Teslemetry for Home Bridge
 
 Got a Tesla? Want to let Siri boss it around? Look no further.
 
-# Services
+## Services
 
 After [installation](#installation) below, you'll get the default services enabled:
 
@@ -31,11 +25,11 @@ You can also configure the plugin to enable these additional services:
 
 **NOTE:** The "charge limit" service is exposed as a "Lightbulb" in HomeKit. This is the only way to get something Siri can control as a percentage value.
 
-# Installation
+## Installation
 
 If you're running a Homebridge UI like [`homebridge-ui-config-x`](https://github.com/oznu/homebridge-config-ui-x) then you can use it to install `homebridge-tesla` and configure it there. All configuration options should be supported.
 
-# Manual Installation
+## Manual Installation
 
 ```sh
 npm install --global homebridge-tesla
@@ -68,7 +62,7 @@ To enable and disable services, you'll need to add more options. For example, to
 
 You can find the full list of configuration settings in [`config.schema.json`](config.schema.json).
 
-## Setting up the Home App
+### Setting up the Home App
 
 The plugin exposes a single HomeKit "Accessory" representing the car, which contains multiple services for all the different switches and locks. _This is the way._
 
@@ -85,7 +79,7 @@ To improve this, you can create a new "Room" in HomeKit for each car. So you mig
 
 Here's a [video demonstrating the complete setup process as of iOS 16](https://youtu.be/sgDJmwwSOYA).
 
-## Waking the Car Up
+### Waking the Car Up
 
 Tesla cars love to go to "sleep" to preserve battery life, meaning their connection to the Tesla servers is usually not active.
 
@@ -95,7 +89,7 @@ Telling Siri to do something to your car will wake it up first. So "open the car
 
 I've found that commands almost always succeed. If they fail a lot for you, you might make sure your car's Wifi connection (if at home) is strong enough. The car is _really_ picky about this (ask me how I know).
 
-## Reading State
+### Reading State
 
 Asking Siri about your car, like "What's the charge level?" or "Is the trunk open?" will _not_ wake up the car. This is because Siri asks a lot in the background and we don't want this to impact the car's battery life.
 
@@ -103,15 +97,7 @@ If you ask Siri if the trunk is open, and the car is online already, the plugin 
 
 If you require the correct answer, you'll need to wake the car up first. You can do this by turning on the special "Connection" switch. This switch is not subject to the default five-second timeout, so if Siri thinks the switch is on, it's on for real and you can read accurate data about the car.
 
-## Generating a Refresh Token
-
-Tesla API access requires a "refresh token" which is tricky to get. There are some apps available that can help with this, check out [this list](https://teslascope.com/help/generating-tokens). I have personally used the macOS app "Auth app for Tesla" (linked via that site) and it worked for me.
-
-Once you get a refresh token using an app (it's very long), you can paste it into your plugin configuration above.
-
-**NOTE** This plugin used to accept an `authToken` property which was intended to be an optional refresh token. If you have one already, you can just paste that token in the `refreshToken` property. The `authToken` property is no longer used, since the name `refreshToken` is more accurate and sets the token apart from OAuth "access tokens" which are only good for 8 hours.
-
-## Multiple Vehicles
+### Multiple Vehicles
 
 Have a garage full of Teslas? Well you're in luck Mr. Musk, because you can
 easily add all of them to HomeKit by creating a separate accessory for each one
@@ -140,7 +126,7 @@ Note that you'll need to come up with different names for all the exposed servic
 
 Instead, you could have a "Model Y Trunk" and a "Model 3 Trunk" and you'd just need to remember to use the right prefix when talking to Siri. You will need to do all this renaming in the Home app as in the video above.
 
-## HomeLink
+### HomeLink
 
 For vehicles with HomeLink support, the plugin allows you to enable the feature to send a HomeLink signal from the car. This is disabled by default. You also must provide a latitude and longitude value for the HomeLink device.
 
@@ -155,13 +141,13 @@ Once that is done, you can issue commands like "Open the HomeLink". If you don't
 }
 ```
 
-## Charge Level
+### Charge Level
 
 The car can supply the current charge level of the battery as a percentage. As with the other services, this will only update if the car is online.
 
 Note that asking Siri about the "battery level" or "charge level" of anything will usually result in Siri telling you the battery level of your phone. Instead, you can ask Siri "Is the Model 3 charging?" and the level should be returned in the reply.
 
-## Climate Switch
+### Climate Switch
 
 By default, the climate control is exposed as a "HVAC" accessory similar to a thermostat in your home. This allows you to say things like "Set the climate to 69 degrees." If you don't need this level of control, you may prefer to expose the climate control as a simple switch. This allows you to say things like "Turn on the climate control" or "Turn off the climate control." The temperature setting will be whatever the car is already set to.
 
@@ -172,7 +158,7 @@ By default, the climate control is exposed as a "HVAC" accessory similar to a th
 }
 ```
 
-## Development
+### Development
 
 You can run Rollup in watch mode to automatically transpile code as you write it:
 
