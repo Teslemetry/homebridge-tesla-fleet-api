@@ -8,7 +8,7 @@
         "title": "name",
         "type": "string",
         "required": true,
-        "default": "Model S"
+        "default": "My Tesla"
       },
       "vin": {
         "title": "VIN",
@@ -16,12 +16,12 @@
         "required": true,
         "default": ""
       },
-      "refreshToken": {
-        "title": "Tesla API Refresh Token",
+      "accessToken": {
+        "title": "Teslemetry Access Token",
         "type": "string",
         "required": true,
         "default": "",
-        "description": "Read the <a href='https://github.com/nfarina/homebridge-tesla'>documentation</a> to learn how to get a refresh token."
+        "description": "Get a token from the <a href='https://teslemetry.com/console'>console</a>."
       },
       "prefix": {
         "title": "Services Prefix",
@@ -144,12 +144,6 @@
         "type": "string",
         "default": "",
         "description": "Longitude of your Homelink device. Required if Homelink is enabled."
-      },
-      "china": {
-        "title": "Use China Authentication Servers",
-        "type": "boolean",
-        "default": false,
-        "description": "Experimental flag for users in China."
       }
     }
   }

@@ -1,11 +1,9 @@
 import { Logging } from "homebridge";
+import { Teslemetry } from "tesla-fleet-api";
 import { EventEmitter } from "./events";
 import { lock } from "./mutex";
-import { getAccessToken } from "./token";
-import { TeslaPluginConfig, Vehicle, VehicleData } from "./types";
+import { TeslaPluginConfig, VehicleData } from "./types";
 import { wait } from "./wait";
-
-const teslajs = require("teslajs");
 
 export interface TeslaApiEvents {
   vehicleDataUpdated(data: VehicleData): void;
@@ -14,16 +12,15 @@ export interface TeslaApiEvents {
 export class TeslaApi extends EventEmitter<TeslaApiEvents> {
   private log: Logging;
   private config: TeslaPluginConfig;
+  private teslemetry: Teslemetry;
 
   // Runtime state.
-  private authToken: string | undefined;
-  private authTokenExpires: number | undefined;
-  private authTokenError: Error | undefined;
+  private accessToken: string | undefined;
 
   // Cached state.
-  private lastOptions: TeslaJSOptions | null = null;
+  private lastOptions: TeslaJSOptions | null = null; // Vehicle
   private lastOptionsTime = 0;
-  private lastVehicleData: VehicleData | null = null;
+  private lastVehicleData: VehicleData | null = null; // Vehicle Data
   private lastVehicleDataTime = 0;
 
   // Keep track of how many commands are being executed at once so we don't
@@ -34,126 +31,10 @@ export class TeslaApi extends EventEmitter<TeslaApiEvents> {
     super();
     this.log = log;
     this.config = config;
+    this.teslemetry = new Teslemetry(config.accessToken);
   }
 
-  getOptions = async ({
-    ignoreCache,
-  }: { ignoreCache?: boolean } = {}): Promise<TeslaJSOptions> => {
-    // Use a mutex to prevent multiple logins happening in parallel.
-    const unlock = await lock("getOptions", 20_000);
-
-    if (!unlock) {
-      this.log("Failed to acquire lock for getOptions");
-      throw new Error("Failed to acquire lock for getOptions");
-    }
-
-    try {
-      // First login if we don't have a token.
-      const authToken = await this.getAuthToken();
-
-      // If the cached value is less than 2500ms old, return it.
-      const cacheAge = Date.now() - this.lastOptionsTime;
-
-      if (cacheAge < 2500 && !ignoreCache && this.lastOptions) {
-        // this.log("Using just-cached options data.");
-        return this.lastOptions;
-      }
-
-      // Grab the string ID of your vehicle and the current state.
-      const { id_s: vehicleID, state } = await this.getVehicle();
-
-      const options = { authToken, vehicleID, isOnline: state === "online" };
-
-      this.log(`Tesla reports vehicle is ${state}.`);
-
-      // Cache the state.
-      this.lastOptions = options;
-      this.lastOptionsTime = Date.now();
-
-      return options;
-    } finally {
-      unlock();
-    }
-  };
-
-  getAuthToken = async (): Promise<string> => {
-    // Use a mutex to prevent multiple logins happening in parallel.
-    const unlock = await lock("getAuthToken", 20_000);
-
-    if (!unlock) {
-      throw new Error("Failed to acquire lock for getAuthToken");
-    }
-
-    try {
-      const { config, authToken, authTokenExpires, authTokenError } = this;
-      const { refreshToken } = config;
-
-      if (authTokenError) {
-        throw new Error("Authentication has previously failed; not retrying.");
-      }
-
-      // Return cached value if we have one, and if it hasn't expired.
-      if (authToken && authTokenExpires && Date.now() < authTokenExpires) {
-        return authToken;
-      }
-
-      this.log("Exchanging refresh token for an access token…");
-      const china = this.config.china;
-      const response = await getAccessToken(refreshToken, { china });
-
-      if (response.error) {
-        // Probably an invalid refresh token.
-        let message = response.error;
-        if (response.error === "server_error") {
-          message += " (possibly an invalid refresh token)";
-        }
-        throw new Error(message);
-      }
-
-      // Save it in memory for future API calls.
-      this.log("Got an access token.");
-      this.authToken = response.access_token;
-      this.authTokenExpires = response.expires_in * 1000 + Date.now() - 10000; // 10 second slop
-      return response.access_token;
-    } catch (error: any) {
-      this.log("Error while getting an access token:", error.message);
-      this.authTokenError = error;
-      throw error;
-    } finally {
-      unlock();
-    }
-  };
-
-  getVehicle = async () => {
-    const { vin } = this.config;
-
-    // Only way to do this is to get ALL vehicles then filter out the one
-    // we want.
-    const authToken = await this.getAuthToken();
-    const vehicles: Vehicle[] = await api("vehicles", { authToken });
-
-    // Now figure out which vehicle matches your VIN.
-    // `vehicles` is something like:
-    // [ { id_s: '18488650400306554', vin: '5YJ3E1EA8JF006024', state: 'asleep', ... }, ... ]
-    const vehicle = vehicles.find((v) => v.vin === vin);
-
-    if (!vehicle) {
-      this.log(
-        "No vehicles were found matching the VIN ${vin} entered in your config.json. Available vehicles:",
-      );
-      for (const vehicle of vehicles) {
-        this.log(`${vehicle.vin} [${vehicle.display_name}]`);
-      }
-
-      throw new Error(`Couldn't find vehicle with VIN ${vin}.`);
-    }
-
-    // this.log(
-    //   `Using vehicle "${vehicle.display_name}" with state "${vehicle.state}"`,
-    // );
-
-    return vehicle;
-  };
+  getVehicle = async () => this.teslemetry.vehicle.vehicle(this.config.vin);
 
   wakeUp = async (options: TeslaJSOptions) => {
     // Is the car online already?

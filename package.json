@@ -30,7 +30,7 @@
   "dependencies": {
     "@babel/polyfill": "^7.4.4",
     "promptly": "^3.2.0",
-    "teslajs": "^4.10.0"
+    "tesla-fleet-api": "^0.0.15"
   },
   "devDependencies": {
     "@babel/core": "^7.19.6",
